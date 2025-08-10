@@ -1,6 +1,21 @@
 import { I18N } from "./i18n";
 import type { Lang } from "./i18n";
-import { CheckCircle2, Lightbulb, Link2, Sparkles } from "lucide-react";
+import {
+  CATEGORIES,
+  CATEGORY_TIPS,
+  RESOURCE_LINKS,
+  EMERGENCY_LINKS,
+  type Category,
+} from "./data";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  FileQuestion,
+  Link2,
+  Lightbulb,
+  Sparkles,
+} from "lucide-react";
 
 interface ResultsViewProps {
   category: string;
@@ -17,51 +32,30 @@ export default function ResultsView({
 }: ResultsViewProps) {
   const t = (key: string) => I18N[lang][key] || key;
 
-  // Category tips (expand as you like)
-  const categoryTips: Record<string, string[]> = {
-    financial: [
-      "Create a budget and track your expenses.",
-      "Seek local financial counseling services.",
-      "Look for skill-based side income opportunities.",
-    ],
-    mental: [
-      "Talk to a trusted friend or counselor.",
-      "Practice daily mindfulness or meditation.",
-      "Take regular breaks and maintain a healthy routine.",
-    ],
-    health: [
-      "Consult a medical professional for advice.",
-      "Adopt a balanced diet and regular exercise routine.",
-      "Avoid self-diagnosis — rely on certified health sources.",
-    ],
-  };
+  // Resolve category object & its type
+  const cat: Category | undefined = CATEGORIES.find((c) => c.id === category);
+  const type: "emergency" | "resources" = cat?.type ?? "resources";
 
-  const supportLinks: Record<string, { label: string; url: string }[]> = {
-    DE: [
-      { label: "Telefonseelsorge (24/7)", url: "https://www.telefonseelsorge.de" },
-      { label: "Beratungsstellen", url: "https://www.beratung.de" },
-    ],
-    US: [
-      { label: "988 Suicide & Crisis Lifeline", url: "https://988lifeline.org" },
-      { label: "Mental Health America", url: "https://www.mhanational.org" },
-    ],
-    UK: [
-      { label: "Samaritans", url: "https://www.samaritans.org" },
-      { label: "Mind UK", url: "https://www.mind.org.uk" },
-    ],
-    IT: [{ label: "Telefono Amico Italia", url: "https://www.telefonoamico.it" }],
-    BE: [{ label: "Tele-Onthaal", url: "https://www.tele-onthaal.be" }],
-  };
+  // Tips
+  const tips = CATEGORY_TIPS[category] || [];
 
+  // Resource links (category → country → links, fallback to GLB)
+  const byCountry = RESOURCE_LINKS[category] || {};
+  const resourceLinks = byCountry[country] || byCountry["GLB"] || [];
+
+  // Emergency links (only when category is emergency)
+  const emergencyLinks =
+    type === "emergency"
+      ? EMERGENCY_LINKS[country] || EMERGENCY_LINKS["GLB"]
+      : [];
+
+  // Quotes (unchanged)
   const quotes = [
     "You are stronger than you think.",
     "This too shall pass.",
     "Small steps every day lead to big changes.",
     "You’ve survived 100% of your hardest days.",
   ];
-
-  const tips = categoryTips[category] ?? [];
-  const links = supportLinks[country] ?? [];
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
 
   return (
@@ -69,23 +63,57 @@ export default function ResultsView({
       {/* Title */}
       <div className="flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-purple-600" />
-        <h2 className="text-xl font-bold text-purple-800">{t("yourPlan")}</h2>
+        <h2 className="text-xl font-bold text-purple-800">
+          {t("yourPlan")} {cat ? `— ${cat.name}` : ""}
+        </h2>
       </div>
+
+      {/* Emergency notice */}
+      {type === "emergency" && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-800">
+                If this is urgent or someone is at immediate risk, contact local emergency services.
+              </p>
+              {emergencyLinks?.length > 0 && (
+                <ul className="mt-2 list-disc pl-5 text-sm">
+                  {emergencyLinks.map((l, i) => (
+                    <li key={i}>
+                      <a
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-red-700 hover:underline inline-flex items-center gap-1"
+                      >
+                        {l.label} <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tips */}
       <div className="grid gap-3">
-        {(tips.length ? tips : [t("No advice available for this category.")]).map((tip, i) => (
-          <div
-            key={i}
-            className="flex items-start gap-3 rounded-xl border border-purple-200 bg-purple-50 p-4"
-          >
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-purple-700 mt-0.5" />
-            <p className="text-sm text-gray-800">{tip}</p>
-          </div>
-        ))}
+        {(tips.length ? tips : [t("No advice available for this category.")]).map(
+          (tip, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-xl border border-purple-200 bg-purple-50 p-4"
+            >
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-purple-700 mt-0.5" />
+              <p className="text-sm text-gray-800">{tip}</p>
+            </div>
+          )
+        )}
       </div>
 
-      {/* Answers summary (optional) */}
+      {/* Answers summary */}
       {Object.keys(answers).length > 0 && (
         <div className="rounded-xl border bg-white p-4 shadow-sm">
           <h3 className="font-semibold text-gray-800 mb-2">{t("Your Answers")}:</h3>
@@ -100,7 +128,7 @@ export default function ResultsView({
         </div>
       )}
 
-      {/* Support links */}
+      {/* Resource links */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Link2 className="h-5 w-5 text-purple-600" />
@@ -109,9 +137,9 @@ export default function ResultsView({
           </h3>
         </div>
 
-        {links.length > 0 ? (
+        {resourceLinks.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {links.map((l, idx) => (
+            {resourceLinks.map((l, idx) => (
               <a
                 key={idx}
                 href={l.url}
@@ -119,13 +147,16 @@ export default function ResultsView({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full border border-purple-300 bg-white px-4 py-2 text-sm text-purple-800 shadow-sm hover:bg-purple-50 transition"
               >
-                <Link2 className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4" />
                 {l.label}
               </a>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-600">{t("No support links found for your country.")}</p>
+          <div className="flex items-start gap-2 text-sm text-gray-600">
+            <FileQuestion className="h-4 w-4 mt-0.5" />
+            <span>{t("No support links found for your country.")}</span>
+          </div>
         )}
       </div>
 

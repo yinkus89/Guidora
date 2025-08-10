@@ -1,20 +1,19 @@
 /* Tailwind v4 entry */
 @import "tailwindcss";
 
-/* Plugins (v4 syntax) */
+/* Optional animations (you installed tailwindcss-animate) */
 @plugin "tailwindcss-animate";
 
 /* Dark variant: apply styles when an ancestor has .dark */
 @custom-variant dark (&:is(.dark &));
 
-/* Design tokens exposed as utilities (shadcn/ui friendly) */
+/* Design tokens (for shadcn/ui etc.) */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Map tokens used by shadcn/ui to your CSS variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -119,14 +118,10 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Base layer tweaks */
+/* Base layer: ensure Tailwind visuals are obvious */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-gradient-to-br from-violet-100 via-white to-fuchsia-100 text-foreground; }
 }
 
 /* Small fade-in helper */
@@ -134,9 +129,4 @@
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fadeIn {
-  animation: fadeInUp .35s ease-out;
-}
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+.animate-fadeIn { animation: fadeInUp .35s ease-out; }

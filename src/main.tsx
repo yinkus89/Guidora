@@ -17,14 +17,9 @@ ReactDOM.createRoot(rootEl).render(
 // Register the service worker for offline/PWA features
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((reg) => {
-        // Optional: log states or hook into updates
-        // console.log("Service worker registered:", reg);
-      })
-      .catch((err) => {
-        console.warn("Service worker registration failed:", err);
-      });
+    navigator.serviceWorker.register("/sw.js")
+      .then(() => console.log("Service worker registered"))
+      .catch(console.error);
   });
 }
+

@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import type { Lang } from "./components/i18n";
 import { I18N } from "./components/i18n";
+import InstallNag from "./components/InstallNag";
 import {
   loadPlans,
   savePlan,
@@ -39,7 +40,7 @@ export default function App() {
   const t = (key: string) => I18N[lang][key] || key;
   const TOTAL_STEPS = 3;
 
-  // Plan completion %
+  // Plan completion %: duration + contact (required), age gives bonus
   const planPercent = useMemo(() => {
     const required = ["duration", "contact"];
     const answered = required.filter((k) => !!formAnswers[k]).length;
@@ -48,7 +49,7 @@ export default function App() {
     return Math.max(0, Math.min(100, pct));
   }, [formAnswers]);
 
-  // Load data & stats
+  // Load data & stats on mount
   useEffect(() => {
     setPlans(loadPlans());
     const prefs: UserPrefs = loadPrefs();
@@ -60,7 +61,7 @@ export default function App() {
     setWeeklyUnique(uniqueCategories);
     setWeeklyTotal(totalVisits);
 
-    // Listen to online/offline events
+    // online/offline listeners
     setIsOnline(navigator.onLine);
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -72,12 +73,12 @@ export default function App() {
     };
   }, []);
 
-  // Persist preferences
+  // Persist preferences whenever they change
   useEffect(() => {
     savePrefs({ lang, country, favorites });
   }, [lang, country, favorites]);
 
-  // Close modal with Escape
+  // Close Saved modal with Escape
   useEffect(() => {
     if (!savedOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -167,6 +168,9 @@ export default function App() {
               You are offline. Some features may be unavailable.
             </div>
           )}
+
+          {/* PWA Install banner */}
+          <InstallNag />
 
           {/* Progress Summary */}
           <ProgressSummary

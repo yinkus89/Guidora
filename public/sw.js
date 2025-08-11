@@ -1,17 +1,15 @@
 /* Guidora Service Worker — runtime caching */
 const CACHE_NAME = "guidora-cache-v1";
 
-// URLs we definitely want available offline
+// Make sure these match files in /public and your manifest!
 const APP_SHELL = [
-  "/",               // SPA entry
+  "/",
   "/index.html",
   "/manifest.webmanifest",
   "/pwa-192x192.png",
   "/pwa-512x512.png",
-  "/pwa-512x512-maskable.png",
-];
-
-// Take control asap
+  "/pwa-512x512-maskable.png"
+]
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
@@ -22,43 +20,51 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME)
-          .map((k) => caches.delete(k))
-      )
+      Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
     )
   );
   self.clients.claim();
 });
 
+// Allow page to request immediate activation
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // Strategy:
 // - Navigation (HTML): network-first with offline fallback to cached index.html
 // - Static assets (script/style/font/image): cache-first
-// - Other requests: network-first
+// - Other requests: network-first with cache fallback
 self.addEventListener("fetch", (event) => {
   const req = event.request;
 
-  // Handle SPA navigations
+  // App navigations (SPA)
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
           const fresh = await fetch(req);
-          // Optionally cache a copy of index on success
           const cache = await caches.open(CACHE_NAME);
-          cache.put("/", fresh.clone());
+          // cache the actual navigated URL
+          cache.put(req, fresh.clone());
           return fresh;
         } catch {
           const cache = await caches.open(CACHE_NAME);
-          return (await cache.match("/")) || (await cache.match("/index.html"));
+          // try navigated URL, then /, then /index.html
+          return (
+            (await cache.match(req)) ||
+            (await cache.match("/")) ||
+            (await cache.match("/index.html"))
+          );
         }
       })()
     );
     return;
   }
 
-  // Static assets cache-first
+  // Static assets: cache-first
   const dest = req.destination;
   if (["style", "script", "font", "image"].includes(dest)) {
     event.respondWith(
@@ -71,7 +77,6 @@ self.addEventListener("fetch", (event) => {
           if (resp && resp.ok) cache.put(req, resp.clone());
           return resp;
         } catch {
-          // last-resort: return cache if any
           return hit || Response.error();
         }
       })()
@@ -79,12 +84,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Default: network-first
+  // Default: network-first with cache fallback
   event.respondWith(
     (async () => {
       try {
-        const resp = await fetch(req);
-        return resp;
+        return await fetch(req);
       } catch {
         const cache = await caches.open(CACHE_NAME);
         const hit = await cache.match(req);

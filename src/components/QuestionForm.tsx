@@ -1,4 +1,3 @@
-// src/components/QuestionForm.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getSuggestions } from "@/lib/suggestions";
 
 interface QuestionFormProps {
   onSubmit: (answers: Record<string, string>) => void;
-  onSuggest?: (keys: string[]) => void; // new
+  onSuggest?: (keys: string[]) => void; // suggestion keys (not translated)
   t: (key: string) => string;
-  category: string; // new
-  country: string; // new
+  category: string;
+  country: string;
 }
 
 export default function QuestionForm({
@@ -51,36 +51,10 @@ export default function QuestionForm({
 
   const isValid = Object.keys(errors).length === 0;
 
-  // Suggestion rules (emit *keys*, not translated labels)
-  const getSuggestionsFor = (
-    cat: string,
-    ctry: string,
-    ans: Record<string, string>
-  ): string[] => {
-    const out: string[] = [];
-
-    // Financial + Germany → Education
-    if (cat === "financial" && ctry === "DE") {
-      out.push("Try Education resources (training & skills)");
-    }
-
-    // Long duration → Health
-    if (ans.duration === "6_plus_months") {
-      out.push("Explore Health checkup/clinic options");
-    }
-
-    // Wants contact → Social support
-    if (ans.contact === "yes") {
-      out.push("Check Social support services (relationships/safety)");
-    }
-
-    return Array.from(new Set(out)).slice(0, 3);
-  };
-
-  // Live suggestions as the user answers
+  // live suggestions
   useEffect(() => {
     if (!onSuggest) return;
-    onSuggest(getSuggestionsFor(category, country, answers));
+    onSuggest(getSuggestions(category, country, answers));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers.age, answers.duration, answers.contact, category, country]);
 
@@ -89,7 +63,7 @@ export default function QuestionForm({
     setTouched({ age: true, duration: true, contact: true });
     if (!isValid) return;
 
-    onSuggest?.(getSuggestionsFor(category, country, answers));
+    onSuggest?.(getSuggestions(category, country, answers));
     onSubmit(answers);
   };
 

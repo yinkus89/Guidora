@@ -7,7 +7,7 @@ import ResultsView from "./components/ResultsView";
 import QuestionForm from "./components/QuestionForm";
 import SavedPlans from "./components/SavedPlans";
 import ProgressSummary from "./components/ProgressSummary";
-import Suggestions from "./components/suggestions"
+import Suggestions from "./components/suggestions"; // ⬅️ fixed casing
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import type { Lang } from "./components/i18n";
@@ -24,6 +24,7 @@ import {
   type SavedPlan,
   type UserPrefs,
 } from "@/lib/storage";
+import { SUGGESTION_KEY_TO_CATEGORY } from "@/lib/suggestions"; // ⬅️ use shared mapping
 
 export default function App() {
   const [lang, setLang] = useState<Lang>("en");
@@ -38,19 +39,12 @@ export default function App() {
   const [weeklyUnique, setWeeklyUnique] = useState(0);
   const [weeklyTotal, setWeeklyTotal] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
-  const [suggestionKeys, setSuggestionKeys] = useState<string[]>([]); // store raw keys
+  const [suggestionKeys, setSuggestionKeys] = useState<string[]>([]); // raw keys
 
   const t = (key: string) => I18N[lang][key] || key;
   const TOTAL_STEPS = 3;
 
-  // map suggestion keys -> category IDs (kept in English keys for stability)
-  const suggestionKeyToCategory: Record<string, string> = {
-    "Try Education resources (training & skills)": "education",
-    "Check Social support services (relationships/safety)": "social",
-    "Explore Health checkup/clinic options": "health",
-  };
-
-  // “Plan completion” %: duration + contact required, age optional bonus
+  // plan completion %: duration + contact required; age gives a small bonus
   const planPercent = useMemo(() => {
     const required = ["duration", "contact"];
     const answered = required.filter((k) => !!formAnswers[k]).length;
@@ -59,7 +53,7 @@ export default function App() {
     return Math.max(0, Math.min(100, pct));
   }, [formAnswers]);
 
-  // Load plans + prefs + weekly stats on mount, and set online listeners
+  // load plans + prefs + weekly stats on mount, and set online listeners
   useEffect(() => {
     setPlans(loadPlans());
     const prefs: UserPrefs = loadPrefs();
@@ -82,12 +76,12 @@ export default function App() {
     };
   }, []);
 
-  // Persist preferences
+  // persist preferences
   useEffect(() => {
     savePrefs({ lang, country, favorites });
   }, [lang, country, favorites]);
 
-  // Close Saved modal with Escape
+  // close Saved modal with Escape
   useEffect(() => {
     if (!savedOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -161,18 +155,20 @@ export default function App() {
     setPlans((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // When clicking a suggestion, jump user to that category (step 1: questions)
+  // clicking a suggestion jumps to that category (step 1)
   const handlePickSuggestion = (label: string) => {
-    // Find the raw key whose translated label matches what was clicked
     const key = suggestionKeys.find((k) => t(k) === label);
     if (!key) return;
-    const nextCat = suggestionKeyToCategory[key];
+    const nextCat =
+      SUGGESTION_KEY_TO_CATEGORY[
+        key as keyof typeof SUGGESTION_KEY_TO_CATEGORY
+      ];
     if (!nextCat) return;
+
     setCategory(nextCat);
     setStep(1);
     trackVisit(nextCat);
     refreshWeeklyStats();
-    // Clear previous answers & suggestions for the new flow
     setFormAnswers({});
     setSuggestionKeys([]);
     window.scrollTo({ top: 0, behavior: "smooth" });

@@ -15,13 +15,16 @@ import {
   Link2,
   Lightbulb,
   Sparkles,
+  Save,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ResultsViewProps {
   category: string;
   country: string;
   answers?: Record<string, string>;
   lang?: Lang;
+  onSave?: (plan: { category: string; country: string; answers: Record<string, string> }) => void;
 }
 
 export default function ResultsView({
@@ -29,17 +32,18 @@ export default function ResultsView({
   country,
   answers = {},
   lang = "en",
+  onSave,
 }: ResultsViewProps) {
   const t = (key: string) => I18N[lang][key] || key;
 
-  // Resolve category object & its type
+  // Resolve category & type
   const cat: Category | undefined = CATEGORIES.find((c) => c.id === category);
   const type: "emergency" | "resources" = cat?.type ?? "resources";
 
   // Tips
   const tips = CATEGORY_TIPS[category] || [];
 
-  // Resource links (category → country → links, fallback to GLB)
+  // Resource links (category → country, fallback to GLB)
   const byCountry = RESOURCE_LINKS[category] || {};
   const resourceLinks = byCountry[country] || byCountry["GLB"] || [];
 
@@ -49,7 +53,7 @@ export default function ResultsView({
       ? EMERGENCY_LINKS[country] || EMERGENCY_LINKS["GLB"]
       : [];
 
-  // Quotes (unchanged)
+  // Quotes
   const quotes = [
     "You are stronger than you think.",
     "This too shall pass.",
@@ -57,6 +61,24 @@ export default function ResultsView({
     "You’ve survived 100% of your hardest days.",
   ];
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
+
+  const handleSave = () => {
+    const plan = { category, country, answers };
+    // Call parent handler if provided
+    if (onSave) {
+      onSave(plan);
+    }
+    // Always persist locally too
+    try {
+      const key = "guidora.savedPlans";
+      const existing = JSON.parse(localStorage.getItem(key) || "[]") as any[];
+      const withId = { id: Date.now(), ...plan };
+      localStorage.setItem(key, JSON.stringify([withId, ...existing].slice(0, 20)));
+      alert("Plan saved locally.");
+    } catch {
+      // no-op
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -160,11 +182,18 @@ export default function ResultsView({
         )}
       </div>
 
+      {/* Save Button */}
+      <div className="pt-2">
+        <Button onClick={handleSave} className="gap-2">
+          <Save className="h-4 w-4" />
+          Save this plan
+        </Button>
+      </div>
+
       {/* Encouragement */}
       <div className="rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-white p-4">
         <div className="flex items-center gap-2 text-purple-700 mb-1">
           <Sparkles className="h-5 w-5" />
-          <span className="text-sm font-medium">{t("encouragement")}</span>
         </div>
         <p className="text-purple-900 font-semibold italic">“{quote}”</p>
       </div>

@@ -34,11 +34,12 @@ export default function App() {
   const [plans, setPlans] = useState<SavedPlan[]>([]);
   const [weeklyUnique, setWeeklyUnique] = useState(0);
   const [weeklyTotal, setWeeklyTotal] = useState(0);
+  const [isOnline, setIsOnline] = useState(true);
 
   const t = (key: string) => I18N[lang][key] || key;
   const TOTAL_STEPS = 3;
 
-  // Simple “plan completion” %: duration + contact (required), age optional bonus
+  // Plan completion %
   const planPercent = useMemo(() => {
     const required = ["duration", "contact"];
     const answered = required.filter((k) => !!formAnswers[k]).length;
@@ -47,7 +48,7 @@ export default function App() {
     return Math.max(0, Math.min(100, pct));
   }, [formAnswers]);
 
-  // Load plans + prefs + weekly stats
+  // Load data & stats
   useEffect(() => {
     setPlans(loadPlans());
     const prefs: UserPrefs = loadPrefs();
@@ -58,9 +59,20 @@ export default function App() {
     const { uniqueCategories, totalVisits } = getWeeklyStats();
     setWeeklyUnique(uniqueCategories);
     setWeeklyTotal(totalVisits);
+
+    // Listen to online/offline events
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
-  // Persist preferences when they change
+  // Persist preferences
   useEffect(() => {
     savePrefs({ lang, country, favorites });
   }, [lang, country, favorites]);
@@ -83,8 +95,8 @@ export default function App() {
 
   const handleStart = (cat: string) => {
     setCategory(cat);
-    trackVisit(cat);          // record visit
-    refreshWeeklyStats();     // refresh weekly counters
+    trackVisit(cat);
+    refreshWeeklyStats();
     setStep(1);
   };
 
@@ -96,7 +108,6 @@ export default function App() {
     } else if (step > 1) {
       setStep(step - 1);
     }
-    // optional: keep the banner fresh after navigation
     refreshWeeklyStats();
   };
 
@@ -104,7 +115,6 @@ export default function App() {
     setCategory(null);
     setFormAnswers({});
     setStep(0);
-    // optional: refresh banner after reset
     refreshWeeklyStats();
   };
 
@@ -130,8 +140,6 @@ export default function App() {
     setFormAnswers(p.answers || {});
     setStep(2);
     setSavedOpen(false);
-
-    // NEW: count this as a visit + refresh weekly numbers
     trackVisit(p.category);
     refreshWeeklyStats();
   };
@@ -152,6 +160,13 @@ export default function App() {
             setCountry={setCountry}
             t={t}
           />
+
+          {/* Offline Mode Banner */}
+          {!isOnline && (
+            <div className="rounded-xl border border-yellow-300 bg-yellow-50 text-yellow-800 px-4 py-2 text-sm">
+              You are offline. Some features may be unavailable.
+            </div>
+          )}
 
           {/* Progress Summary */}
           <ProgressSummary

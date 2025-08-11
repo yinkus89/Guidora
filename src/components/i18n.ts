@@ -23,7 +23,13 @@ export const I18N: Record<Lang, Record<string, string>> = {
     Select: "Select",
     "Your Answers": "Your Answers",
     "No advice available for this category.": "No advice available for this category.",
-    "No support links found for your country.": "No support links found for your country."
+    "No support links found for your country.": "No support links found for your country.",
+
+    // ✅ Smart Suggestions
+    "Related suggestions": "Related suggestions",
+    "Try Education resources (training & skills)": "Try Education resources (training & skills)",
+    "Check Social support services (relationships/safety)": "Check Social support services (relationships/safety)",
+    "Explore Health checkup/clinic options": "Explore Health checkup/clinic options"
   },
   de: {
     appTitle: "Guidora",
@@ -47,6 +53,12 @@ export const I18N: Record<Lang, Record<string, string>> = {
     Select: "Auswählen",
     "Your Answers": "Ihre Antworten",
     "No advice available for this category.": "Keine Ratschläge für diese Kategorie verfügbar.",
-    "No support links found for your country.": "Keine Unterstützungslinks für Ihr Land gefunden."
+    "No support links found for your country.": "Keine Unterstützungslinks für Ihr Land gefunden.",
+
+    // ✅ Smart Suggestions
+    "Related suggestions": "Verwandte Vorschläge",
+    "Try Education resources (training & skills)": "Bildungsressourcen ausprobieren (Schulungen & Fähigkeiten)",
+    "Check Social support services (relationships/safety)": "Soziale Unterstützungsdienste prüfen (Beziehungen/Sicherheit)",
+    "Explore Health checkup/clinic options": "Gesundheitsuntersuchungen/Klinikoptionen erkunden"
   }
 };

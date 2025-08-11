@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+// src/components/QuestionForm.tsx
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,10 +13,19 @@ import {
 
 interface QuestionFormProps {
   onSubmit: (answers: Record<string, string>) => void;
+  onSuggest?: (keys: string[]) => void; // new
   t: (key: string) => string;
+  category: string; // new
+  country: string; // new
 }
 
-export default function QuestionForm({ onSubmit, t }: QuestionFormProps) {
+export default function QuestionForm({
+  onSubmit,
+  onSuggest,
+  t,
+  category,
+  country,
+}: QuestionFormProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({
     age: "",
     duration: "",
@@ -26,13 +36,11 @@ export default function QuestionForm({ onSubmit, t }: QuestionFormProps) {
   const handleChange = (name: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [name]: value }));
   };
-
   const markTouched = (name: string) =>
     setTouched((prev) => ({ ...prev, [name]: true }));
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
-    // Age optional but must be positive if entered
     if (answers.age && (!/^\d+$/.test(answers.age) || Number(answers.age) <= 0)) {
       e.age = "Please enter a valid age.";
     }
@@ -43,16 +51,49 @@ export default function QuestionForm({ onSubmit, t }: QuestionFormProps) {
 
   const isValid = Object.keys(errors).length === 0;
 
+  // Suggestion rules (emit *keys*, not translated labels)
+  const getSuggestionsFor = (
+    cat: string,
+    ctry: string,
+    ans: Record<string, string>
+  ): string[] => {
+    const out: string[] = [];
+
+    // Financial + Germany → Education
+    if (cat === "financial" && ctry === "DE") {
+      out.push("Try Education resources (training & skills)");
+    }
+
+    // Long duration → Health
+    if (ans.duration === "6_plus_months") {
+      out.push("Explore Health checkup/clinic options");
+    }
+
+    // Wants contact → Social support
+    if (ans.contact === "yes") {
+      out.push("Check Social support services (relationships/safety)");
+    }
+
+    return Array.from(new Set(out)).slice(0, 3);
+  };
+
+  // Live suggestions as the user answers
+  useEffect(() => {
+    if (!onSuggest) return;
+    onSuggest(getSuggestionsFor(category, country, answers));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers.age, answers.duration, answers.contact, category, country]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mark all as touched so errors show
     setTouched({ age: true, duration: true, contact: true });
     if (!isValid) return;
+
+    onSuggest?.(getSuggestionsFor(category, country, answers));
     onSubmit(answers);
   };
 
   return (
-    // Added mt-10 to create space from the header & language dropdown
     <form onSubmit={handleSubmit} className="space-y-6 mt-10">
       {/* Age */}
       <div className="space-y-2">
@@ -97,13 +138,9 @@ export default function QuestionForm({ onSubmit, t }: QuestionFormProps) {
             <SelectValue placeholder={`-- ${t("Select")} --`} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="less_than_month">
-              {t("Less than a month")}
-            </SelectItem>
+            <SelectItem value="less_than_month">{t("Less than a month")}</SelectItem>
             <SelectItem value="1_6_months">{t("1–6 months")}</SelectItem>
-            <SelectItem value="6_plus_months">
-              {t("More than 6 months")}
-            </SelectItem>
+            <SelectItem value="6_plus_months">{t("More than 6 months")}</SelectItem>
           </SelectContent>
         </Select>
         {touched.duration && errors.duration && (
@@ -138,7 +175,7 @@ export default function QuestionForm({ onSubmit, t }: QuestionFormProps) {
         )}
       </div>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <div className="pt-2">
         <Button type="submit" disabled={!isValid} className="w-full sm:w-auto">
           {t("next")}

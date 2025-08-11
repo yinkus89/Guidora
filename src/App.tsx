@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Stepper from "./components/Stepper";
@@ -6,6 +7,7 @@ import ResultsView from "./components/ResultsView";
 import QuestionForm from "./components/QuestionForm";
 import SavedPlans from "./components/SavedPlans";
 import ProgressSummary from "./components/ProgressSummary";
+import Suggestions from "./components/suggestions"
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import type { Lang } from "./components/i18n";
@@ -36,11 +38,19 @@ export default function App() {
   const [weeklyUnique, setWeeklyUnique] = useState(0);
   const [weeklyTotal, setWeeklyTotal] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
+  const [suggestionKeys, setSuggestionKeys] = useState<string[]>([]); // store raw keys
 
   const t = (key: string) => I18N[lang][key] || key;
   const TOTAL_STEPS = 3;
 
-  // Plan completion %: duration + contact (required), age gives bonus
+  // map suggestion keys -> category IDs (kept in English keys for stability)
+  const suggestionKeyToCategory: Record<string, string> = {
+    "Try Education resources (training & skills)": "education",
+    "Check Social support services (relationships/safety)": "social",
+    "Explore Health checkup/clinic options": "health",
+  };
+
+  // “Plan completion” %: duration + contact required, age optional bonus
   const planPercent = useMemo(() => {
     const required = ["duration", "contact"];
     const answered = required.filter((k) => !!formAnswers[k]).length;
@@ -49,7 +59,7 @@ export default function App() {
     return Math.max(0, Math.min(100, pct));
   }, [formAnswers]);
 
-  // Load data & stats on mount
+  // Load plans + prefs + weekly stats on mount, and set online listeners
   useEffect(() => {
     setPlans(loadPlans());
     const prefs: UserPrefs = loadPrefs();
@@ -61,7 +71,6 @@ export default function App() {
     setWeeklyUnique(uniqueCategories);
     setWeeklyTotal(totalVisits);
 
-    // online/offline listeners
     setIsOnline(navigator.onLine);
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -73,7 +82,7 @@ export default function App() {
     };
   }, []);
 
-  // Persist preferences whenever they change
+  // Persist preferences
   useEffect(() => {
     savePrefs({ lang, country, favorites });
   }, [lang, country, favorites]);
@@ -105,6 +114,7 @@ export default function App() {
     if (step === 1) {
       setCategory(null);
       setFormAnswers({});
+      setSuggestionKeys([]); // reset
       setStep(0);
     } else if (step > 1) {
       setStep(step - 1);
@@ -115,6 +125,7 @@ export default function App() {
   const handleReset = () => {
     setCategory(null);
     setFormAnswers({});
+    setSuggestionKeys([]);
     setStep(0);
     refreshWeeklyStats();
   };
@@ -148,6 +159,23 @@ export default function App() {
   const handleDeletePlan = (id: string) => {
     deletePlan(id);
     setPlans((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // When clicking a suggestion, jump user to that category (step 1: questions)
+  const handlePickSuggestion = (label: string) => {
+    // Find the raw key whose translated label matches what was clicked
+    const key = suggestionKeys.find((k) => t(k) === label);
+    if (!key) return;
+    const nextCat = suggestionKeyToCategory[key];
+    if (!nextCat) return;
+    setCategory(nextCat);
+    setStep(1);
+    trackVisit(nextCat);
+    refreshWeeklyStats();
+    // Clear previous answers & suggestions for the new flow
+    setFormAnswers({});
+    setSuggestionKeys([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -210,6 +238,7 @@ export default function App() {
             </div>
           )}
 
+          {/* Step 0: Category selection */}
           {step === 0 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-purple-800">{t("start")}</h2>
@@ -224,20 +253,31 @@ export default function App() {
             </div>
           )}
 
+          {/* Step 1: Questions */}
           {step === 1 && category && (
             <div className="space-y-6 mt-6">
               <QuestionForm
                 t={t}
+                category={category}
+                country={country}
                 onSubmit={(answers) => {
                   setFormAnswers(answers);
                   setStep(2);
                 }}
+                onSuggest={(sugs) => setSuggestionKeys(sugs)}
               />
             </div>
           )}
 
+          {/* Step 2: Results + Suggestions */}
           {step === 2 && category && (
             <div className="space-y-6">
+              <Suggestions
+                suggestions={suggestionKeys.map((k) => t(k))}
+                title={t("Related suggestions")}
+                onPick={handlePickSuggestion}
+              />
+
               <ResultsView
                 category={category}
                 country={country}

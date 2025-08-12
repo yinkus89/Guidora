@@ -1,0 +1,25 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Financial illustration">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE29A"></stop>
+      <stop offset="100%" stop-color="#FFA99F"></stop>
+    </linearGradient>
+    <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity=".15"></feDropShadow>
+    </filter>
+  </defs>
+  <rect rx="24" ry="24" width="256" height="256" fill="url(#g1)"></rect>
+  <!-- coin stack -->
+  <g transform="translate(54,66)" fill="none" stroke="#663399" stroke-width="4" filter="url(#s)">
+    <ellipse cx="52" cy="28" rx="44" ry="18" fill="#FFFFFF90"></ellipse>
+    <path d="M8,28 v60 c0,10 88,10 88,0 v-60" fill="#FFFFFF80"></path>
+    <ellipse cx="52" cy="28" rx="44" ry="18" fill="none"></ellipse>
+    <ellipse cx="52" cy="48" rx="44" ry="18" fill="none"></ellipse>
+    <ellipse cx="52" cy="68" rx="44" ry="18" fill="none"></ellipse>
+  </g>
+  <!-- dollar coin -->
+  <g transform="translate(140,110)" filter="url(#s)">
+    <circle cx="40" cy="40" r="36" fill="#fff" stroke="#663399" stroke-width="4"></circle>
+    <path d="M40 22v36M31 28c3-6 23-6 26 0 3 6-6 9-17 11-11 3-20 6-17 12 3 6 23 6 26 0" fill="none" stroke="#663399" stroke-width="4" stroke-linecap="round"></path>
+  </g>
+</svg>
